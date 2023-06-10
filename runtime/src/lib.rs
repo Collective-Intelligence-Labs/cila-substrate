@@ -48,6 +48,7 @@ pub use sp_runtime::{Perbill, Permill};
 /// Import the template pallet.
 pub use pallet_template;
 pub use pallet_event_store;
+pub use pallet_nfts_aggregate;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -280,6 +281,12 @@ impl pallet_event_store::Config for Runtime {
 	type WeightInfo = pallet_event_store::weights::SubstrateWeight<Runtime>;
 }
 
+/// Configure the pallet-template in pallets/template.
+impl pallet_nfts_aggregate::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = pallet_nfts_aggregate::weights::SubstrateWeight<Runtime>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub struct Runtime
@@ -298,6 +305,7 @@ construct_runtime!(
 		// Include the custom logic from the pallet-template in the runtime.
 		TemplateModule: pallet_template,
 		EventStore: pallet_event_store,
+		NftsAggregate: pallet_nfts_aggregate
 	}
 );
 

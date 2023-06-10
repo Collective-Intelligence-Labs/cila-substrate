@@ -897,6 +897,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "cil-messages"
+version = "0.0.1"
+dependencies = [
+ "quick-protobuf",
+]
+
+[[package]]
 name = "cipher"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4703,6 +4710,7 @@ dependencies = [
 name = "pallet-nfts-aggregate"
 version = "4.0.0-dev"
 dependencies = [
+ "cil-messages",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
@@ -8844,7 +8852,7 @@ checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
  "cfg-if",
  "digest 0.10.6",
- "rand 0.7.3",
+ "rand 0.8.5",
  "static_assertions",
 ]
 
