@@ -2,6 +2,8 @@
 members = [
     "node",
     "pallets/template",
+    "pallets/event-store",
+    "pallets/nfts-aggregate",
     "runtime",
 ]
 [profile.release]
