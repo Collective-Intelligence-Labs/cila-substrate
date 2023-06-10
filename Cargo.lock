@@ -4411,6 +4411,7 @@ dependencies = [
  "frame-try-runtime",
  "pallet-aura",
  "pallet-balances",
+ "pallet-dispatcher",
  "pallet-event-store",
  "pallet-grandpa",
  "pallet-nfts-aggregate",
@@ -4670,9 +4671,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-dispatcher"
+version = "4.0.0-dev"
+dependencies = [
+ "cil-messages",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+]
+
+[[package]]
 name = "pallet-event-store"
 version = "4.0.0-dev"
 dependencies = [
+ "cil-messages",
  "frame-benchmarking",
  "frame-support",
  "frame-system",

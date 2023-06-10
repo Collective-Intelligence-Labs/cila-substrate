@@ -1,5 +1,5 @@
 [package]
-name = "pallet-event-store"
+name = "pallet-dispatcher"
 version = "4.0.0-dev"
 edition = "2021"
 license = "MIT-0"

@@ -21,7 +21,7 @@ pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
-	use cil_messages::event::*;
+	use cil_messages::operation::*;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
@@ -50,7 +50,7 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [something, who]
-		OmnichainEventStored { something: u32, who: T::AccountId },
+		CommandDispatched { something: u32, who: T::AccountId },
 	}
 	
 	// Errors inform users that something went wrong.
@@ -81,7 +81,7 @@ pub mod pallet {
 			<Something<T>>::put(something);
 
 			// Emit an event.
-			Self::deposit_event(Event::OmnichainEventStored { something, who });
+			Self::deposit_event(Event::CommandDispatched { something, who });
 			// Return a successful DispatchResultWithPostInfo
 			Ok(())
 		}
