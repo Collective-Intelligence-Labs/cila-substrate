@@ -276,22 +276,23 @@ impl pallet_template::Config for Runtime {
 	type WeightInfo = pallet_template::weights::SubstrateWeight<Runtime>;
 }
 
-/// Configure the pallet-template in pallets/template.
+parameter_types! {
+    pub const EventMaxSize: u32 = 2048;
+}
+
 impl pallet_event_store::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type WeightInfo = pallet_event_store::weights::SubstrateWeight<Runtime>;
+	type EventMaxSize = EventMaxSize;
 }
 
-/// Configure the pallet-template in pallets/template.
 impl pallet_dispatcher::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type WeightInfo = pallet_dispatcher::weights::SubstrateWeight<Runtime>;
+	type NftsAggregateRepository = pallet_nfts_aggregate::Pallet<Runtime>;
 }
 
-/// Configure the pallet-template in pallets/template.
 impl pallet_nfts_aggregate::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type WeightInfo = pallet_nfts_aggregate::weights::SubstrateWeight<Runtime>;
+	type EventStore = pallet_event_store::Pallet<Runtime>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

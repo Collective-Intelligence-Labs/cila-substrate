@@ -1,9 +1,10 @@
 [package]
-name = "cil-messages"
+name = "cil-common"
 version = "0.0.1"
 edition = "2021"
 
 [dependencies]
-sp-core = { version = "7.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.42" }
 sp-std = { version = "5.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.42" }
+sp-core = { version = "7.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.42" }
+cil-messages = { version = "0.0.1", default-features = false, path = "../proto" }
 quick-protobuf = { version = "0.8.1", default-features = false, git = "https://github.com/yahortsaryk/quick-protobuf.git", branch = "fork/AlaaZorkane/208" }

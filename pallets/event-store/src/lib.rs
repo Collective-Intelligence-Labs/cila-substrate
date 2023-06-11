@@ -1,8 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-/// Edit this file to define custom logic or remove it if it is not needed.
-/// Learn more about FRAME and the core library of Substrate FRAME pallets:
-/// <https://docs.substrate.io/reference/frame-pallets/>
 pub use pallet::*;
 
 #[cfg(test)]
@@ -13,43 +10,56 @@ mod tests;
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
-pub mod weights;
-pub use weights::*;
+
 
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
-	use cil_messages::event::*;
+	use cil_messages::event::{DomainEvent};
+	use cil_common::event::{DomainEventProto};
+	use sp_std::vec::{Vec};
+	use sp_core::{H160};
+	use cil_common::event_store::{EventStore};
+	use quick_protobuf::{serialize_into_slice_without_len, deserialize_from_slice_without_len};
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
 
-	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
-		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-		/// Type representing the weight of this pallet
-		type WeightInfo: WeightInfo;
+		type EventMaxSize: Get<u32>;
 	}
 
-	// The pallet's runtime storage items.
-	// https://docs.substrate.io/main-docs/build/runtime-storage/
-	#[pallet::storage]
-	#[pallet::getter(fn something)]
-	// Learn more about declaring storage items:
-	// https://docs.substrate.io/main-docs/build/runtime-storage/#declaring-storage-items
-	pub type Something<T> = StorageValue<_, u32>;
+	pub type AggregateId = H160;
+	pub type EventIndex = u64;
 
-	// Pallets use events to inform users when important changes are made.
-	// https://docs.substrate.io/main-docs/build/events-errors/
+	#[pallet::storage]
+	pub type Streams<T: Config> = 
+		StorageDoubleMap<
+			_, 
+			Blake2_128Concat, 
+			AggregateId, 
+			Blake2_128Concat, 
+			EventIndex, 
+			BoundedVec<u8, T::EventMaxSize>, 
+			ValueQuery
+		>;
+	
+	#[pallet::storage]
+	pub(super) type StreamsHeads<T: Config> = StorageMap<
+		_,
+		Blake2_128Concat, 
+		AggregateId,
+		EventIndex,
+		ValueQuery
+	>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// Event documentation should end with an array that provides descriptive names for event
-		/// parameters. [something, who]
 		OmnichainEventStored { something: u32, who: T::AccountId },
 	}
 	
@@ -62,48 +72,36 @@ pub mod pallet {
 		StorageOverflow,
 	}
 
-	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
-	// These functions materialize as "extrinsics", which are often compared to transactions.
-	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		/// An example dispatchable that takes a singles value as a parameter, writes the value to
-		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
-		#[pallet::call_index(0)]
-		#[pallet::weight(T::WeightInfo::do_something())]
-		pub fn do_something(origin: OriginFor<T>, something: u32) -> DispatchResult {
-			// Check that the extrinsic was signed and get the signer.
-			// This function will return an error if the extrinsic is not signed.
-			// https://docs.substrate.io/main-docs/build/origins/
-			let who = ensure_signed(origin)?;
 
-			// Update storage.
-			<Something<T>>::put(something);
+	}
 
-			// Emit an event.
-			Self::deposit_event(Event::OmnichainEventStored { something, who });
-			// Return a successful DispatchResultWithPostInfo
-			Ok(())
+	impl<T: Config> EventStore for Pallet<T> {
+
+		fn get(aggregate_id: H160) -> Vec<DomainEvent> {
+			let mut evnts = Vec::new();
+
+			if StreamsHeads::<T>::contains_key(aggregate_id) {
+				let last_idx = StreamsHeads::<T>::get(aggregate_id);
+				for idx in 0u64..=last_idx {
+					let bounded_vec = Streams::<T>::get(aggregate_id, idx);
+					let unbounded_vec: Vec<u8> = bounded_vec.into();
+					let evnt = DomainEvent::deserialize(unbounded_vec);
+					evnts.push(evnt);
+				}
+			};
+
+			evnts
 		}
 
-		/// An example dispatchable that may throw a custom error.
-		#[pallet::call_index(1)]
-		#[pallet::weight(T::WeightInfo::cause_error())]
-		pub fn cause_error(origin: OriginFor<T>) -> DispatchResult {
-			let _who = ensure_signed(origin)?;
-
-			// Read a value from storage.
-			match <Something<T>>::get() {
-				// Return an error if the value has not been set.
-				None => return Err(Error::<T>::NoneValue.into()),
-				Some(old) => {
-					// Increment the value read from storage; will error in the event of overflow.
-					let new = old.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;
-					// Update the value in storage with the incremented result.
-					<Something<T>>::put(new);
-					Ok(())
-				},
-			}
+		fn add(aggregate_id: H160, evnt: DomainEvent) {
+			let idx = evnt.evnt_idx;
+			let unbounded_vec = DomainEvent::serialize(evnt);
+			let bounded_vec = BoundedVec::<u8, T::EventMaxSize>::try_from(unbounded_vec).unwrap();
+			Streams::<T>::insert(aggregate_id, idx, bounded_vec);
+			StreamsHeads::<T>::insert(aggregate_id, idx);
 		}
+
 	}
 }

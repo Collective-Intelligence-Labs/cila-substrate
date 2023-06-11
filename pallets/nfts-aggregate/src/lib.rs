@@ -1,8 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-/// Edit this file to define custom logic or remove it if it is not needed.
-/// Learn more about FRAME and the core library of Substrate FRAME pallets:
-/// <https://docs.substrate.io/reference/frame-pallets/>
 pub use pallet::*;
 
 #[cfg(test)]
@@ -13,97 +10,210 @@ mod tests;
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
-pub mod weights;
-pub use weights::*;
 
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
-	use cil_messages::command::*;
+	use sp_std::vec::{Vec};
+	use sp_std::collections::btree_map::{BTreeMap};
+	use sp_core::{H160, H256};
+	use quick_protobuf::{serialize_into_slice_without_len, deserialize_from_slice_without_len, MessageWrite};
+
+	use cil_messages::command::{Command, CommandType, MintNFTPayload, TransferNFTPayload};
+	use cil_messages::event::{DomainEvent, DomainEventType, NFTMintedPayload, NFTTransferedPayload};
+	use cil_common::event::{NFTMintedEvent, NFTTransferredEvent, NFTMintedPayloadSerializer, NFTTransferredPayloadSerializer};
+	use cil_common::command::{MintNFTCmd, TransferNFTCmd};
+	use cil_common::aggregate::{Aggregate, AggregateState, AggregateRepository};
+	use cil_common::event_store::{EventStore};
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
 
-	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
-		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-		/// Type representing the weight of this pallet
-		type WeightInfo: WeightInfo;
+		type EventStore: EventStore;
 	}
 
-	// The pallet's runtime storage items.
-	// https://docs.substrate.io/main-docs/build/runtime-storage/
-	#[pallet::storage]
-	#[pallet::getter(fn something)]
-	// Learn more about declaring storage items:
-	// https://docs.substrate.io/main-docs/build/runtime-storage/#declaring-storage-items
-	pub type Something<T> = StorageValue<_, u32>;
-
-	// Pallets use events to inform users when important changes are made.
-	// https://docs.substrate.io/main-docs/build/events-errors/
 	#[pallet::event]
-	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// Event documentation should end with an array that provides descriptive names for event
-		/// parameters. [something, who]
-		MintNftHandled { something: u32, who: T::AccountId },
+		MintNftHandled { magic_num: u32 },
+		TransferNftHandled { magic_num: u32 },
 	}
 	
-	// Errors inform users that something went wrong.
 	#[pallet::error]
 	pub enum Error<T> {
-		/// Error names should be descriptive.
-		NoneValue,
-		/// Errors should have helpful documentation associated with them.
-		StorageOverflow,
+		UnknownCommand,
 	}
 
-	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
-	// These functions materialize as "extrinsics", which are often compared to transactions.
-	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
-	impl<T: Config> Pallet<T> {
-		/// An example dispatchable that takes a singles value as a parameter, writes the value to
-		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
-		#[pallet::call_index(0)]
-		#[pallet::weight(T::WeightInfo::do_something())]
-		pub fn do_something(origin: OriginFor<T>, something: u32) -> DispatchResult {
-			// Check that the extrinsic was signed and get the signer.
-			// This function will return an error if the extrinsic is not signed.
-			// https://docs.substrate.io/main-docs/build/origins/
-			let who = ensure_signed(origin)?;
+	impl<T: Config> Pallet<T> {}
 
-			// Update storage.
-			<Something<T>>::put(something);
+	#[derive(Default)]
+	pub struct NftsAggregateState {
+		nfts: BTreeMap<H256, H160>
+	}
 
-			// Emit an event.
-			Self::deposit_event(Event::MintNftHandled { something, who });
-			// Return a successful DispatchResultWithPostInfo
-			Ok(())
+	#[derive(Default)]
+	pub struct NftsAggregate {
+		state: NftsAggregateState,
+		changes: Vec<DomainEvent>,
+		evnts_count: u64
+	}
+
+	impl<T: Config> AggregateRepository for Pallet<T> {
+		type Aggregate = NftsAggregate;
+		
+		fn get_aggregate(aggregate_id: H160) -> NftsAggregate {
+			let mut aggregate = NftsAggregate::default();
+			let evnts = T::EventStore::get(aggregate_id);
+			aggregate.replay_events(evnts);
+			aggregate
 		}
 
-		/// An example dispatchable that may throw a custom error.
-		#[pallet::call_index(1)]
-		#[pallet::weight(T::WeightInfo::cause_error())]
-		pub fn cause_error(origin: OriginFor<T>) -> DispatchResult {
-			let _who = ensure_signed(origin)?;
-
-			// Read a value from storage.
-			match <Something<T>>::get() {
-				// Return an error if the value has not been set.
-				None => return Err(Error::<T>::NoneValue.into()),
-				Some(old) => {
-					// Increment the value read from storage; will error in the event of overflow.
-					let new = old.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;
-					// Update the value in storage with the incremented result.
-					<Something<T>>::put(new);
-					Ok(())
-				},
+		fn save_aggregate(aggregate_id: H160, aggregate: NftsAggregate) {
+			let changes = aggregate.pull_changes();
+			for change in changes.into_iter() {
+				T::EventStore::add(aggregate_id, change);
 			}
 		}
 	}
+
+	impl Aggregate for NftsAggregate {
+
+		type AggregateState = NftsAggregateState;
+
+		fn get_state(&self) -> &NftsAggregateState {
+			&self.state
+		}
+
+		fn get_state_mut(&mut self) -> &mut NftsAggregateState {
+			&mut self.state
+		}
+
+		fn get_evnts_count(&self) -> u64 {
+			self.evnts_count
+		}
+
+		fn inc_evnts_count(&mut self) {
+			self.evnts_count = self.evnts_count + 1;
+		}
+		
+		fn handle_command(&mut self, cmd: Command) {
+			match cmd {
+				Command { cmd_type: CommandType::MINT_NFT, cmd_payload, .. } => {
+					let payload: MintNFTPayload = deserialize_from_slice_without_len(&cmd_payload).unwrap();
+					self.mint(MintNFTCmd(payload)).unwrap();
+				},
+				Command { cmd_type: CommandType::TRANSFER_NFT, cmd_payload, .. } => {
+					let payload: TransferNFTPayload = deserialize_from_slice_without_len(&cmd_payload).unwrap();
+					self.transfer(TransferNFTCmd(payload)).unwrap();
+				},
+				_ => {},
+			}
+		}
+
+		fn pull_changes(&self) -> Vec<DomainEvent> {
+			self.changes.clone()
+		}
+
+		fn put_change(&mut self, evnt: DomainEvent) {
+			self.changes.push(evnt);
+		}
+	}
+
+	impl NftsAggregate {
+
+		fn mint(&mut self, cmd: MintNFTCmd) -> Result<(), &str> {
+
+			let nft_hash = cmd.get_hash_h256().unwrap();
+			if self.state.nfts.contains_key(&nft_hash) {
+				return Err("NFT with such hash is already minted")
+			};
+
+			let evnt_payload = NFTMintedPayload {
+				hash: cmd.get_hash(),
+				owner: cmd.get_owner()
+			};
+
+			let evnt = DomainEvent {
+				evnt_idx: self.get_evnts_count(),
+				evnt_type: DomainEventType::NFT_MINTED,
+				evnt_payload: NFTMintedPayload::serialize(evnt_payload)
+			};
+
+			self.apply_event(evnt);
+
+			Ok(())
+		}
+
+		fn transfer(&mut self, cmd: TransferNFTCmd) -> Result<(), &str> {
+			let nft_hash = cmd.get_hash_h256().unwrap();
+
+			match self.state.nfts.get(&nft_hash) {
+				None => Err("NFT with such hash does not exist"),
+				Some(owner) => {
+					let receiver = cmd.get_receiver_H160().unwrap();
+					if *owner == receiver {
+						Err("NFT can not be transferred to its current owner")
+					} else {
+						let evnt_payload = NFTTransferedPayload {
+							hash: cmd.get_hash(),
+							to: cmd.get_receiver(),
+							// validation for the current owner needs to be performed using the tx signature and will be added in the next steps
+							from: owner.to_fixed_bytes().to_vec()
+						};
+
+						let evnt = DomainEvent {
+							evnt_idx: self.get_evnts_count(),
+							evnt_type: DomainEventType::NFT_TRANSFERED,
+							evnt_payload: NFTTransferedPayload::serialize(evnt_payload)
+						};
+			
+						self.apply_event(evnt);
+
+						Ok(())
+					}
+				}
+			}
+		}
+	}
+
+
+	impl AggregateState for NftsAggregateState {
+
+		fn on_evnt(&mut self, evnt: DomainEvent) {
+			match evnt {
+				DomainEvent { evnt_type: DomainEventType::NFT_MINTED, evnt_payload, .. } => {
+					let payload: NFTMintedPayload = deserialize_from_slice_without_len(&evnt_payload).unwrap();
+					self.on_minted(NFTMintedEvent(payload));
+				},
+				DomainEvent { evnt_type: DomainEventType::NFT_TRANSFERED, evnt_payload, .. } => {
+					let payload: NFTTransferedPayload = deserialize_from_slice_without_len(&evnt_payload).unwrap();
+					self.on_transferred(NFTTransferredEvent(payload));
+				},
+				_ => {},
+			}
+		}
+
+	}
+
+	impl NftsAggregateState {
+
+		fn on_minted(&mut self, evnt: NFTMintedEvent) {
+			let nft_hash = evnt.get_hash_h256().unwrap();
+			let owner = evnt.get_owner_h160().unwrap();
+			self.nfts.insert(nft_hash, owner);
+		}
+	
+		fn on_transferred(&mut self, evnt: NFTTransferredEvent) {
+			let nft_hash = evnt.get_hash_h256().unwrap();
+			let receiver = evnt.get_receiver_H160().unwrap();
+			self.nfts.insert(nft_hash, receiver);
+		}
+
+	}
+	
 }

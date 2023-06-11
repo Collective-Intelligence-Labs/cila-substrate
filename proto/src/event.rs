@@ -10,8 +10,8 @@
 
 
 use alloc::vec::Vec;
-use alloc::borrow::Cow;
-use quick_protobuf::{MessageInfo, MessageRead, MessageWrite, BytesReader, Writer, WriterBackend, Result};
+use alloc::borrow::ToOwned;
+use quick_protobuf::{MessageInfo, MessageRead, MessageWrite, BytesReader, Writer, WriterBackend, Result, PackedFixed, PackedFixedIntoIter, PackedFixedRefIter};
 use quick_protobuf::sizeofs::*;
 use super::*;
 
@@ -51,21 +51,21 @@ impl<'a> From<&'a str> for DomainEventType {
 }
 
 #[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Debug, Default, PartialEq, Clone)]
-pub struct DomainEvent<'a> {
+#[derive(Default, Debug, PartialEq, Clone)]
+pub struct DomainEvent {
     pub evnt_idx: u64,
     pub evnt_type: DomainEventType,
-    pub evnt_payload: Cow<'a, [u8]>,
+    pub evnt_payload: Vec<u8>,
 }
 
-impl<'a> MessageRead<'a> for DomainEvent<'a> {
+impl<'a> MessageRead<'a> for DomainEvent {
     fn from_reader(r: &mut BytesReader, bytes: &'a [u8]) -> Result<Self> {
         let mut msg = Self::default();
         while !r.is_eof() {
             match r.next_tag(bytes) {
                 Ok(8) => msg.evnt_idx = r.read_uint64(bytes)?,
                 Ok(16) => msg.evnt_type = r.read_enum(bytes)?,
-                Ok(26) => msg.evnt_payload = r.read_bytes(bytes).map(Cow::Borrowed)?,
+                Ok(26) => msg.evnt_payload = r.read_bytes(bytes)?.to_owned(),
                 Ok(t) => { r.read_unknown(bytes, t)?; }
                 Err(e) => return Err(e),
             }
@@ -74,36 +74,36 @@ impl<'a> MessageRead<'a> for DomainEvent<'a> {
     }
 }
 
-impl<'a> MessageWrite for DomainEvent<'a> {
+impl MessageWrite for DomainEvent {
     fn get_size(&self) -> usize {
         0
         + if self.evnt_idx == 0u64 { 0 } else { 1 + sizeof_varint(*(&self.evnt_idx) as u64) }
         + if self.evnt_type == event::DomainEventType::UNSPECIFIED_EVENT { 0 } else { 1 + sizeof_varint(*(&self.evnt_type) as u64) }
-        + if self.evnt_payload == Cow::Borrowed(b"") { 0 } else { 1 + sizeof_len((&self.evnt_payload).len()) }
+        + if self.evnt_payload == Vec::<u8>::new() { 0 } else { 1 + sizeof_len(self.evnt_payload.len()) }
     }
 
     fn write_message<W: WriterBackend>(&self, w: &mut Writer<W>) -> Result<()> {
         if self.evnt_idx != 0u64 { w.write_with_tag(8, |w| w.write_uint64(*&self.evnt_idx))?; }
         if self.evnt_type != event::DomainEventType::UNSPECIFIED_EVENT { w.write_with_tag(16, |w| w.write_enum(*&self.evnt_type as i32))?; }
-        if self.evnt_payload != Cow::Borrowed(b"") { w.write_with_tag(26, |w| w.write_bytes(&**&self.evnt_payload))?; }
+        if self.evnt_payload != Vec::<u8>::new() { w.write_with_tag(26, |w| w.write_bytes(&self.evnt_payload))?; }
         Ok(())
     }
 }
 
 #[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Debug, Default, PartialEq, Clone)]
-pub struct NFTMintedPayload<'a> {
-    pub hash: Cow<'a, [u8]>,
-    pub owner: Cow<'a, [u8]>,
+#[derive(Default, Debug, PartialEq, Clone)]
+pub struct NFTMintedPayload {
+    pub hash: Vec<u8>,
+    pub owner: Vec<u8>,
 }
 
-impl<'a> MessageRead<'a> for NFTMintedPayload<'a> {
+impl<'a> MessageRead<'a> for NFTMintedPayload {
     fn from_reader(r: &mut BytesReader, bytes: &'a [u8]) -> Result<Self> {
         let mut msg = Self::default();
         while !r.is_eof() {
             match r.next_tag(bytes) {
-                Ok(10) => msg.hash = r.read_bytes(bytes).map(Cow::Borrowed)?,
-                Ok(18) => msg.owner = r.read_bytes(bytes).map(Cow::Borrowed)?,
+                Ok(10) => msg.hash = r.read_bytes(bytes)?.to_owned(),
+                Ok(18) => msg.owner = r.read_bytes(bytes)?.to_owned(),
                 Ok(t) => { r.read_unknown(bytes, t)?; }
                 Err(e) => return Err(e),
             }
@@ -112,36 +112,36 @@ impl<'a> MessageRead<'a> for NFTMintedPayload<'a> {
     }
 }
 
-impl<'a> MessageWrite for NFTMintedPayload<'a> {
+impl MessageWrite for NFTMintedPayload {
     fn get_size(&self) -> usize {
         0
-        + if self.hash == Cow::Borrowed(b"") { 0 } else { 1 + sizeof_len((&self.hash).len()) }
-        + if self.owner == Cow::Borrowed(b"") { 0 } else { 1 + sizeof_len((&self.owner).len()) }
+        + if self.hash == Vec::<u8>::new() { 0 } else { 1 + sizeof_len(self.hash.len()) }
+        + if self.owner == Vec::<u8>::new() { 0 } else { 1 + sizeof_len(self.owner.len()) }
     }
 
     fn write_message<W: WriterBackend>(&self, w: &mut Writer<W>) -> Result<()> {
-        if self.hash != Cow::Borrowed(b"") { w.write_with_tag(10, |w| w.write_bytes(&**&self.hash))?; }
-        if self.owner != Cow::Borrowed(b"") { w.write_with_tag(18, |w| w.write_bytes(&**&self.owner))?; }
+        if self.hash != Vec::<u8>::new() { w.write_with_tag(10, |w| w.write_bytes(&self.hash))?; }
+        if self.owner != Vec::<u8>::new() { w.write_with_tag(18, |w| w.write_bytes(&self.owner))?; }
         Ok(())
     }
 }
 
 #[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Debug, Default, PartialEq, Clone)]
-pub struct NFTTransferedPayload<'a> {
-    pub hash: Cow<'a, [u8]>,
-    pub from: Cow<'a, [u8]>,
-    pub to: Cow<'a, [u8]>,
+#[derive(Default, Debug, PartialEq, Clone)]
+pub struct NFTTransferedPayload {
+    pub hash: Vec<u8>,
+    pub from: Vec<u8>,
+    pub to: Vec<u8>,
 }
 
-impl<'a> MessageRead<'a> for NFTTransferedPayload<'a> {
+impl<'a> MessageRead<'a> for NFTTransferedPayload {
     fn from_reader(r: &mut BytesReader, bytes: &'a [u8]) -> Result<Self> {
         let mut msg = Self::default();
         while !r.is_eof() {
             match r.next_tag(bytes) {
-                Ok(10) => msg.hash = r.read_bytes(bytes).map(Cow::Borrowed)?,
-                Ok(18) => msg.from = r.read_bytes(bytes).map(Cow::Borrowed)?,
-                Ok(26) => msg.to = r.read_bytes(bytes).map(Cow::Borrowed)?,
+                Ok(10) => msg.hash = r.read_bytes(bytes)?.to_owned(),
+                Ok(18) => msg.from = r.read_bytes(bytes)?.to_owned(),
+                Ok(26) => msg.to = r.read_bytes(bytes)?.to_owned(),
                 Ok(t) => { r.read_unknown(bytes, t)?; }
                 Err(e) => return Err(e),
             }
@@ -150,18 +150,18 @@ impl<'a> MessageRead<'a> for NFTTransferedPayload<'a> {
     }
 }
 
-impl<'a> MessageWrite for NFTTransferedPayload<'a> {
+impl MessageWrite for NFTTransferedPayload {
     fn get_size(&self) -> usize {
         0
-        + if self.hash == Cow::Borrowed(b"") { 0 } else { 1 + sizeof_len((&self.hash).len()) }
-        + if self.from == Cow::Borrowed(b"") { 0 } else { 1 + sizeof_len((&self.from).len()) }
-        + if self.to == Cow::Borrowed(b"") { 0 } else { 1 + sizeof_len((&self.to).len()) }
+        + if self.hash == Vec::<u8>::new() { 0 } else { 1 + sizeof_len(self.hash.len()) }
+        + if self.from == Vec::<u8>::new() { 0 } else { 1 + sizeof_len(self.from.len()) }
+        + if self.to == Vec::<u8>::new() { 0 } else { 1 + sizeof_len(self.to.len()) }
     }
 
     fn write_message<W: WriterBackend>(&self, w: &mut Writer<W>) -> Result<()> {
-        if self.hash != Cow::Borrowed(b"") { w.write_with_tag(10, |w| w.write_bytes(&**&self.hash))?; }
-        if self.from != Cow::Borrowed(b"") { w.write_with_tag(18, |w| w.write_bytes(&**&self.from))?; }
-        if self.to != Cow::Borrowed(b"") { w.write_with_tag(26, |w| w.write_bytes(&**&self.to))?; }
+        if self.hash != Vec::<u8>::new() { w.write_with_tag(10, |w| w.write_bytes(&self.hash))?; }
+        if self.from != Vec::<u8>::new() { w.write_with_tag(18, |w| w.write_bytes(&self.from))?; }
+        if self.to != Vec::<u8>::new() { w.write_with_tag(26, |w| w.write_bytes(&self.to))?; }
         Ok(())
     }
 }
