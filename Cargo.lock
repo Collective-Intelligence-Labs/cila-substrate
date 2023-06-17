@@ -4366,50 +4366,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "node-template"
-version = "4.0.0-dev"
-dependencies = [
- "clap",
- "frame-benchmarking",
- "frame-benchmarking-cli",
- "frame-system",
- "futures",
- "jsonrpsee",
- "node-template-runtime",
- "pallet-transaction-payment",
- "pallet-transaction-payment-rpc",
- "sc-basic-authorship",
- "sc-cli",
- "sc-client-api",
- "sc-consensus",
- "sc-consensus-aura",
- "sc-consensus-grandpa",
- "sc-executor",
- "sc-keystore",
- "sc-rpc",
- "sc-rpc-api",
- "sc-service",
- "sc-telemetry",
- "sc-transaction-pool",
- "sc-transaction-pool-api",
- "sp-api",
- "sp-block-builder",
- "sp-blockchain",
- "sp-consensus",
- "sp-consensus-aura",
- "sp-consensus-grandpa",
- "sp-core",
- "sp-inherents",
- "sp-io",
- "sp-keyring",
- "sp-runtime",
- "sp-timestamp",
- "substrate-build-script-utils",
- "substrate-frame-rpc-system",
- "try-runtime-cli",
-]
-
-[[package]]
 name = "node-template-runtime"
 version = "4.0.0-dev"
 dependencies = [
@@ -4429,7 +4385,6 @@ dependencies = [
  "pallet-grandpa",
  "pallet-nfts-aggregate",
  "pallet-sudo",
- "pallet-template",
  "pallet-timestamp",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
@@ -4580,6 +4535,50 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9bedf36ffb6ba96c2eb7144ef6270557b52e54b20c0a8e1eb2ff99a6c6959bff"
 dependencies = [
  "asn1-rs 0.5.2",
+]
+
+[[package]]
+name = "omnichain-prototype"
+version = "4.0.0-dev"
+dependencies = [
+ "clap",
+ "frame-benchmarking",
+ "frame-benchmarking-cli",
+ "frame-system",
+ "futures",
+ "jsonrpsee",
+ "node-template-runtime",
+ "pallet-transaction-payment",
+ "pallet-transaction-payment-rpc",
+ "sc-basic-authorship",
+ "sc-cli",
+ "sc-client-api",
+ "sc-consensus",
+ "sc-consensus-aura",
+ "sc-consensus-grandpa",
+ "sc-executor",
+ "sc-keystore",
+ "sc-rpc",
+ "sc-rpc-api",
+ "sc-service",
+ "sc-telemetry",
+ "sc-transaction-pool",
+ "sc-transaction-pool-api",
+ "sp-api",
+ "sp-block-builder",
+ "sp-blockchain",
+ "sp-consensus",
+ "sp-consensus-aura",
+ "sp-consensus-grandpa",
+ "sp-core",
+ "sp-inherents",
+ "sp-io",
+ "sp-keyring",
+ "sp-runtime",
+ "sp-timestamp",
+ "substrate-build-script-utils",
+ "substrate-frame-rpc-system",
+ "try-runtime-cli",
 ]
 
 [[package]]
@@ -4790,20 +4789,6 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
-]
-
-[[package]]
-name = "pallet-template"
-version = "4.0.0-dev"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "parity-scale-codec",
- "scale-info",
- "sp-core",
- "sp-io",
- "sp-runtime",
 ]
 
 [[package]]

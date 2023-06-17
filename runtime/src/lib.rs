@@ -45,8 +45,6 @@ use pallet_transaction_payment::{ConstFeeMultiplier, CurrencyAdapter, Multiplier
 pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
 
-/// Import the template pallet.
-pub use pallet_template;
 pub use pallet_event_store;
 pub use pallet_dispatcher;
 pub use pallet_nfts_aggregate;
@@ -270,12 +268,6 @@ impl pallet_sudo::Config for Runtime {
 	type RuntimeCall = RuntimeCall;
 }
 
-/// Configure the pallet-template in pallets/template.
-impl pallet_template::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type WeightInfo = pallet_template::weights::SubstrateWeight<Runtime>;
-}
-
 parameter_types! {
     pub const EventMaxSize: u32 = 2048;
 }
@@ -310,8 +302,6 @@ construct_runtime!(
 		Balances: pallet_balances,
 		TransactionPayment: pallet_transaction_payment,
 		Sudo: pallet_sudo,
-		// Include the custom logic from the pallet-template in the runtime.
-		TemplateModule: pallet_template,
 		EventStore: pallet_event_store,
 		Dispatcher: pallet_dispatcher,
 		NftsAggregate: pallet_nfts_aggregate,
@@ -361,7 +351,6 @@ mod benches {
 		[frame_system, SystemBench::<Runtime>]
 		[pallet_balances, Balances]
 		[pallet_timestamp, Timestamp]
-		[pallet_template, TemplateModule]
 	);
 }
 

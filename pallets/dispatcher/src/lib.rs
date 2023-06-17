@@ -2,26 +2,15 @@
 
 pub use pallet::*;
 
-#[cfg(test)]
-mod mock;
-
-#[cfg(test)]
-mod tests;
-
-#[cfg(feature = "runtime-benchmarks")]
-mod benchmarking;
-
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
-
 	use cil_messages::operation::{Operation};
-	use cil_messages::utils::{OperationExt, CommandExt};
+	use cil_messages::utils::{OperationExt, CommandExt, ProtoError};
 	use cil_common::aggregate::{AggregateRepository, Aggregate};
-
-	use sp_std::vec::{Vec};
+	use sp_std::vec::Vec;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
@@ -51,6 +40,21 @@ pub mod pallet {
 	#[pallet::error]
 	pub enum Error<T> {
 		NotAuthorizedRouter,
+		UnableSerializeMessage,
+		UnableDeserializeMessage,
+		NotValidH160Field,
+		NotValidH256Field,
+	}
+
+	impl<T> From<ProtoError> for Error<T> {
+		fn from(err: ProtoError) -> Self {
+			match err {
+				ProtoError::CannotSerializeToProto => Self::UnableSerializeMessage,
+				ProtoError::CannotDeserializeFromProto => Self::UnableDeserializeMessage,
+				ProtoError::CannotConvertToH160 => Self::NotValidH160Field,
+				ProtoError::CannotConvertToH256 => Self::NotValidH256Field,
+			}
+		}
 	}
 
 	#[pallet::call]
@@ -87,8 +91,9 @@ pub mod pallet {
 				return Err(Error::<T>::NotAuthorizedRouter.into());
 			};
 			
-			let op: Operation = Operation::deserialize(op_bytes);
-			let aggregate_id = op.commands.get(0).unwrap().get_aggregate_id_h160().unwrap();
+			let op = Operation::deserialize(op_bytes).map_err(|_| Error::<T>::UnableDeserializeMessage)?;
+
+			let aggregate_id = op.commands.get(0).unwrap().get_aggregate_id_h160().map_err(|_| Error::<T>::NotValidH160Field)?;
 			let mut aggregate = T::NftsAggregateRepository::get_aggregate(aggregate_id);
 
 			for cmd in op.commands {

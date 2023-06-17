@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "node",
-    "pallets/template",
+    "pallets/dispatcher",
     "pallets/event-store",
     "pallets/nfts-aggregate",
     "runtime",
