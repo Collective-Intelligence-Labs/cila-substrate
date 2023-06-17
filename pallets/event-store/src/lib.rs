@@ -18,11 +18,10 @@ pub mod pallet {
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
 	use cil_messages::event::{DomainEvent};
-	use cil_common::event::{DomainEventProto};
-	use sp_std::vec::{Vec};
-	use sp_core::{H160, Bytes};
+	use cil_messages::utils::{DomainEventExt};
 	use cil_common::event_store::{EventStore};
-	use quick_protobuf::{serialize_into_slice_without_len, deserialize_from_slice_without_len};
+	use sp_std::vec::{Vec};
+	use sp_core::{H160};
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);

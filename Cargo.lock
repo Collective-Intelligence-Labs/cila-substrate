@@ -901,7 +901,6 @@ name = "cil-common"
 version = "0.0.1"
 dependencies = [
  "cil-messages",
- "quick-protobuf 0.8.1 (git+https://github.com/yahortsaryk/quick-protobuf.git?branch=fork/AlaaZorkane/208)",
  "sp-core",
  "sp-std",
 ]
@@ -4694,7 +4693,6 @@ dependencies = [
  "frame-support",
  "frame-system",
  "parity-scale-codec",
- "quick-protobuf 0.8.1 (git+https://github.com/yahortsaryk/quick-protobuf.git?branch=fork/AlaaZorkane/208)",
  "scale-info",
  "sp-core",
  "sp-io",
@@ -4712,7 +4710,6 @@ dependencies = [
  "frame-support",
  "frame-system",
  "parity-scale-codec",
- "quick-protobuf 0.8.1 (git+https://github.com/yahortsaryk/quick-protobuf.git?branch=fork/AlaaZorkane/208)",
  "scale-info",
  "sp-core",
  "sp-io",
@@ -4753,7 +4750,6 @@ dependencies = [
  "frame-support",
  "frame-system",
  "parity-scale-codec",
- "quick-protobuf 0.8.1 (git+https://github.com/yahortsaryk/quick-protobuf.git?branch=fork/AlaaZorkane/208)",
  "scale-info",
  "sp-core",
  "sp-io",

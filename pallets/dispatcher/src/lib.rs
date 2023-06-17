@@ -17,15 +17,11 @@ pub mod pallet {
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
 
-	use cil_common::aggregate::{AggregateRepository, Aggregate};
-	use cil_common::event_store::{EventStore};
 	use cil_messages::operation::{Operation};
-	use cil_messages::command::{Command};
-	use cil_messages::utils::{CommandUtils};
+	use cil_messages::utils::{OperationExt, CommandExt};
+	use cil_common::aggregate::{AggregateRepository, Aggregate};
 
-	use sp_core::{H160};
 	use sp_std::vec::{Vec};
-	use quick_protobuf::{serialize_into_slice_without_len, deserialize_from_slice_without_len};
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
@@ -91,11 +87,12 @@ pub mod pallet {
 				return Err(Error::<T>::NotAuthorizedRouter.into());
 			};
 			
-			let op: Operation = deserialize_from_slice_without_len(&op_bytes).unwrap();
+			let op: Operation = Operation::deserialize(op_bytes);
 			let aggregate_id = op.commands.get(0).unwrap().get_aggregate_id_h160().unwrap();
 			let mut aggregate = T::NftsAggregateRepository::get_aggregate(aggregate_id);
 
 			for cmd in op.commands {
+				// todo: check command signature
 				aggregate.handle_command(cmd);
 			}
 

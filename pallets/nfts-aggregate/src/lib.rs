@@ -19,12 +19,11 @@ pub mod pallet {
 	use sp_std::vec::{Vec};
 	use sp_std::collections::btree_map::{BTreeMap};
 	use sp_core::{H160, H256};
-	use quick_protobuf::{serialize_into_slice_without_len, deserialize_from_slice_without_len, MessageWrite};
 
 	use cil_messages::command::{Command, CommandType, MintNFTPayload, TransferNFTPayload};
 	use cil_messages::event::{DomainEvent, DomainEventType, NFTMintedPayload, NFTTransferedPayload};
-	use cil_common::event::{NFTMintedEvent, NFTTransferredEvent, NFTMintedPayloadSerializer, NFTTransferredPayloadSerializer};
-	use cil_common::command::{MintNFTCmd, TransferNFTCmd};
+	use cil_messages::utils::{MintNFTPayloadExt, NFTMintedPayloadExt, TransferNFTPayloadExt, NFTTransferedPayloadExt};
+	
 	use cil_common::aggregate::{Aggregate, AggregateState, AggregateRepository};
 	use cil_common::event_store::{EventStore};
 
@@ -39,8 +38,7 @@ pub mod pallet {
 
 	#[pallet::event]
 	pub enum Event<T: Config> {
-		MintNftHandled { magic_num: u32 },
-		TransferNftHandled { magic_num: u32 },
+		CommandHandeled
 	}
 	
 	#[pallet::error]
@@ -104,12 +102,12 @@ pub mod pallet {
 		fn handle_command(&mut self, cmd: Command) {
 			match cmd {
 				Command { cmd_type: CommandType::MINT_NFT, cmd_payload, .. } => {
-					let payload: MintNFTPayload = deserialize_from_slice_without_len(&cmd_payload).unwrap();
-					self.mint(MintNFTCmd(payload)).unwrap();
+					let payload = MintNFTPayload::deserialize(cmd_payload);
+					self.mint(payload).unwrap();
 				},
 				Command { cmd_type: CommandType::TRANSFER_NFT, cmd_payload, .. } => {
-					let payload: TransferNFTPayload = deserialize_from_slice_without_len(&cmd_payload).unwrap();
-					self.transfer(TransferNFTCmd(payload)).unwrap();
+					let payload = TransferNFTPayload::deserialize(cmd_payload);
+					self.transfer(payload).unwrap();
 				},
 				_ => {},
 			}
@@ -126,16 +124,16 @@ pub mod pallet {
 
 	impl NftsAggregate {
 
-		fn mint(&mut self, cmd: MintNFTCmd) -> Result<(), &str> {
+		fn mint(&mut self, payload: MintNFTPayload) -> Result<(), &str> {
 
-			let nft_hash = cmd.get_hash_h256().unwrap();
+			let nft_hash = payload.get_hash_h256().unwrap();
 			if self.state.nfts.contains_key(&nft_hash) {
 				return Err("NFT with such hash is already minted")
 			};
 
 			let evnt_payload = NFTMintedPayload {
-				hash: cmd.get_hash(),
-				owner: cmd.get_owner()
+				hash: payload.get_hash(),
+				owner: payload.get_owner()
 			};
 
 			let evnt = DomainEvent {
@@ -149,20 +147,20 @@ pub mod pallet {
 			Ok(())
 		}
 
-		fn transfer(&mut self, cmd: TransferNFTCmd) -> Result<(), &str> {
-			let nft_hash = cmd.get_hash_h256().unwrap();
+		fn transfer(&mut self, payload: TransferNFTPayload) -> Result<(), &str> {
+			let nft_hash = payload.get_hash_h256().unwrap();
 
 			match self.state.nfts.get(&nft_hash) {
 				None => Err("NFT with such hash does not exist"),
 				Some(owner) => {
-					let receiver = cmd.get_receiver_H160().unwrap();
+					let receiver = payload.get_receiver_h160().unwrap();
 					if *owner == receiver {
 						Err("NFT can not be transferred to its current owner")
 					} else {
 						let evnt_payload = NFTTransferedPayload {
-							hash: cmd.get_hash(),
-							to: cmd.get_receiver(),
-							// validation for the current owner needs to be performed using the tx signature and will be added in the next steps
+							hash: payload.get_hash(),
+							to: payload.get_receiver(),
+							// todo: validate the current owner from cmd signature
 							from: owner.to_fixed_bytes().to_vec()
 						};
 
@@ -187,12 +185,12 @@ pub mod pallet {
 		fn on_evnt(&mut self, evnt: DomainEvent) {
 			match evnt {
 				DomainEvent { evnt_type: DomainEventType::NFT_MINTED, evnt_payload, .. } => {
-					let payload: NFTMintedPayload = deserialize_from_slice_without_len(&evnt_payload).unwrap();
-					self.on_minted(NFTMintedEvent(payload));
+					let payload = NFTMintedPayload::deserialize(evnt_payload);
+					self.on_minted(payload);
 				},
 				DomainEvent { evnt_type: DomainEventType::NFT_TRANSFERED, evnt_payload, .. } => {
-					let payload: NFTTransferedPayload = deserialize_from_slice_without_len(&evnt_payload).unwrap();
-					self.on_transferred(NFTTransferredEvent(payload));
+					let payload = NFTTransferedPayload::deserialize(evnt_payload);
+					self.on_transferred(payload);
 				},
 				_ => {},
 			}
@@ -202,15 +200,15 @@ pub mod pallet {
 
 	impl NftsAggregateState {
 
-		fn on_minted(&mut self, evnt: NFTMintedEvent) {
-			let nft_hash = evnt.get_hash_h256().unwrap();
-			let owner = evnt.get_owner_h160().unwrap();
+		fn on_minted(&mut self, payload: NFTMintedPayload) {
+			let nft_hash = payload.get_hash_h256().unwrap();
+			let owner = payload.get_owner_h160().unwrap();
 			self.nfts.insert(nft_hash, owner);
 		}
 	
-		fn on_transferred(&mut self, evnt: NFTTransferredEvent) {
-			let nft_hash = evnt.get_hash_h256().unwrap();
-			let receiver = evnt.get_receiver_H160().unwrap();
+		fn on_transferred(&mut self, payload: NFTTransferedPayload) {
+			let nft_hash = payload.get_hash_h256().unwrap();
+			let receiver = payload.get_receiver_h160().unwrap();
 			self.nfts.insert(nft_hash, receiver);
 		}
 
