@@ -37,7 +37,6 @@ pub mod pallet {
 	}
 
 	#[pallet::storage]
-	#[pallet::getter(fn routers)]
 	pub(super) type Routers<T: Config> = StorageMap<
 		_,
 		Blake2_128Concat, 

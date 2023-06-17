@@ -28,8 +28,8 @@ pub trait Aggregate {
     }
 
     fn replay_events(&mut self, evnts: Vec<DomainEvent>) {
-        for evnt in evnts.iter() {
-            self.get_state_mut().on_evnt(evnt.clone());
+        for evnt in evnts.into_iter() {
+            self.get_state_mut().on_evnt(evnt);
             self.inc_evnts_count();
         }
     }
