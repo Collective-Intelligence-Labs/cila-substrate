@@ -1,6 +1,8 @@
 FROM paritytech/ci-linux:production as builder
 LABEL description="Substrate node"
 WORKDIR /substrate
+ENV CARGO_HOME=/substrate/cargo
+ENV RUSTUP_HOME=/substrate/rustup
 
 # Install Substrate dependencies
 COPY . .
