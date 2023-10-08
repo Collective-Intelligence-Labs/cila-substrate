@@ -44,4 +44,4 @@ Before proceeding to the build and run steps, it's crucial to understand what th
 After building the image, you can run a container from it using the following command:
 
 ```bash
-docker run -p 9933:9933 -p 9944:9944 -p 30333:30333 -v $(pwd)/substrate-data:/substrate substrate-node-image
+docker run -v $(pwd)/substrate-data:/substrate substrate-node-image

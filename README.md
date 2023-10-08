@@ -30,3 +30,8 @@ In the [Web Explorer](https://polkadot.js.org/apps/?rpc=ws://127.0.0.1:9944#/exp
 ```
 
 You can use [Protobufpal](https://www.protobufpal.com/) to serialize and deserialize messages.
+
+
+## Docker run
+
+docker run -v $(pwd)/substrate-data:/substrate substrate-node-image
