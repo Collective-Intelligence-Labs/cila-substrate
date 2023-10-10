@@ -1,37 +1,56 @@
-# Auto-Tests Documentation
+# Understanding the Code
 
-This document provides the steps to run automated tests located in the `autotest` directory using the `npm test` command.
+The tests are organized in a JavaScript file. Below are the key components and steps performed in the code:
 
-## Pre-requisites
+## Importing Required Libraries:
+The `@polkadot/api` and `protobufjs` libraries are imported to interact with the Substrate node and handle Protocol Buffers, respectively.
 
-Ensure you have the following installed on your machine:
-
-- [Node.js](https://nodejs.org/) (v14.x or later recommended)
-- [npm](https://www.npmjs.com/) (v6.x or later recommended)
-
-## Setting Up
-
-1. **Clone the repository** (if you haven't already):
-
-2. **Navigate to the autotest directory**
-
-```bash 
-cd autotest
-
+```javascript
+const { ApiPromise, WsProvider, Keyring } = require('@polkadot/api');
+const protobuf = require('protobufjs');
 ```
 
-3. **Install the dependencies**
+## Loading Protobuf Schema:
+The compiled protobuf schema is loaded, and the `Command` message type is looked up.
 
-
-```bash 
-npm install
-
+```javascript
+const root = protobuf.loadSync('../proto/src/command.proto');
+const Command = root.lookupType("Command");
 ```
 
-**Running the Tests**
-To run the automated tests, use the following command:
+## Setting Up Connection:
+A WebSocket provider is set up, and the API connection to the Substrate node is established.
 
-```bash 
-npm test
+```javascript
+wsProvider = new WsProvider('ws://127.0.0.1:9944');
+api = await ApiPromise.create({ provider: wsProvider });
 
+## Listing Available Pallets and Methods:
+The available pallets and their methods are logged to the console.
+
+```javascript
+listAllPalletsAndMethods();
+```
+
+## Sending Commands:
+Functions for sending commands and interacting with the blockchain are defined.
+
+```javascript
+function sendCommand(action, params) { /*...*/ }
+```
+
+## Running Tests:
+Tests are defined and run using Jest's `describe` and `test` functions.
+
+```javascript
+describe('Substrate Tests', () => { /*...*/ });
+```
+
+## Cleaning Up:
+The connection to the Substrate node is closed after the tests have run.
+
+```javascript
+afterAll(() => {
+  return api.disconnect();
+});
 ```
