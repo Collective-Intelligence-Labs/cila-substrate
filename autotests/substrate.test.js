@@ -33,10 +33,24 @@ function sendCommand(action, params) {
   return extrinsic.signAndSend(alice);
 }
 
+function listAllPalletsAndMethods(){
+  // Get the list of available pallets
+  const pallets = Object.keys(api.tx);
+
+  // Log the available pallets and their methods
+  pallets.forEach(pallet => {
+    console.log(`Pallet: ${pallet}`);
+    const methods = Object.keys(api.tx[pallet]);
+    console.log('Methods:', methods.join(', '));
+  });
+
+}
+
 beforeAll(async () => {
   wsProvider = new WsProvider('ws://127.0.0.1:9944');
   api = await ApiPromise.create({ provider: wsProvider });
-
+  listAllPalletsAndMethods();
+  
    // Create a keyring instance
    const keyring = new Keyring({ type: 'sr25519' });
 
@@ -65,6 +79,15 @@ describe('Substrate Tests', () => {
     var result = await sendCommand('MintNFTPayload', {hash: "asdasd", owner: "asasdsad"});
     expect(result);
   });
+
+  test('Add router', async () => {
+    const keyring = new Keyring({ type: 'sr25519' });
+    const bob = keyring.addFromUri('//Bob', { name: 'Bob default' });
+    const extrinsic = api.tx.dispatcher.addRouter(bob.publicKey);
+    const hash = await extrinsic.signAndSend(bob);
+    expect(hash);
+  });
+
   // ... add more tests as needed
   
 });
